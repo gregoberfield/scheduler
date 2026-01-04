@@ -1,6 +1,6 @@
 from app import db
 from datetime import datetime
-from sqlalchemy import event, Index
+from sqlalchemy import event, Index, select, func
 
 class AvailabilitySlot(db.Model):
     """Availability slot model - 30 minute time slots"""
@@ -55,15 +55,12 @@ class AggregateSlotCount(db.Model):
         return f'<AggregateSlotCount slot={self.slot_index} available={self.available_count} maybe={self.maybe_count}>'
 
 
-# Track slots that need aggregate updates
-_pending_aggregate_updates = set()
-
 def update_aggregate_count(slot_index):
     """Recalculate aggregate counts for a specific slot"""
     available_count = AvailabilitySlot.query.filter_by(slot_index=slot_index, state=2).count()
     maybe_count = AvailabilitySlot.query.filter_by(slot_index=slot_index, state=1).count()
     
-    aggregate = db.session.query(AggregateSlotCount).get(slot_index)
+    aggregate = db.session.get(AggregateSlotCount, slot_index)
     if aggregate:
         aggregate.available_count = available_count
         aggregate.maybe_count = maybe_count
@@ -79,20 +76,56 @@ def update_aggregate_count(slot_index):
 
 # Event listeners to update aggregate counts
 @event.listens_for(AvailabilitySlot, 'after_insert')
-@event.listens_for(AvailabilitySlot, 'after_update')
+@event.listens_for(AvailabilitySlot, 'after_update') 
 @event.listens_for(AvailabilitySlot, 'after_delete')
-def mark_slot_for_aggregate_update(mapper, connection, target):
-    """Mark slot for aggregate update after changes"""
-    _pending_aggregate_updates.add(target.slot_index)
-
-
-@event.listens_for(db.Session, 'after_flush')
-def update_aggregates_after_flush(session, flush_context):
-    """Update all marked aggregates after flush"""
-    global _pending_aggregate_updates
-    if _pending_aggregate_updates:
-        # Update all pending aggregates
-        for slot_index in _pending_aggregate_updates:
-            update_aggregate_count(slot_index)
-        # Clear the pending set
-        _pending_aggregate_updates = set()
+def receive_after_change(mapper, connection, target):
+    """Update aggregate immediately after availability change"""
+    # Use connection-level queries to count within the same transaction
+    availability_table = AvailabilitySlot.__table__
+    aggregate_table = AggregateSlotCount.__table__
+    
+    # Count available (state=2)
+    available_result = connection.execute(
+        select(func.count()).select_from(availability_table).where(
+            availability_table.c.slot_index == target.slot_index,
+            availability_table.c.state == 2
+        )
+    )
+    available_count = available_result.scalar()
+    
+    # Count maybe (state=1)
+    maybe_result = connection.execute(
+        select(func.count()).select_from(availability_table).where(
+            availability_table.c.slot_index == target.slot_index,
+            availability_table.c.state == 1
+        )
+    )
+    maybe_count = maybe_result.scalar()
+    
+    # Check if aggregate exists
+    check_result = connection.execute(
+        select(aggregate_table.c.slot_index).where(
+            aggregate_table.c.slot_index == target.slot_index
+        )
+    )
+    exists = check_result.fetchone() is not None
+    
+    # Update or insert aggregate
+    if exists:
+        connection.execute(
+            aggregate_table.update().where(
+                aggregate_table.c.slot_index == target.slot_index
+            ).values(
+                available_count=available_count,
+                maybe_count=maybe_count,
+                updated_at=datetime.utcnow()
+            )
+        )
+    else:
+        connection.execute(
+            aggregate_table.insert().values(
+                slot_index=target.slot_index,
+                available_count=available_count,
+                maybe_count=maybe_count
+            )
+        )
