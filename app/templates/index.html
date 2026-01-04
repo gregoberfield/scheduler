@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Home - WoW TBC Availability{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-10">
+            <div class="text-center mb-5">
+                <h1 class="display-4">WoW TBC Launch Availability Planner</h1>
+                <p class="lead">Coordinate your guild's availability for The Burning Crusade launch</p>
+            </div>
+            
+            {% if current_user.is_authenticated %}
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-person-fill text-primary" style="font-size: 3rem;"></i>
+                            <h5 class="card-title mt-3">My Availability</h5>
+                            <p class="card-text">Set your own availability for different time slots</p>
+                            <a href="{{ url_for('availability.my_availability') }}" class="btn btn-primary">
+                                Manage Availability
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-people-fill text-success" style="font-size: 3rem;"></i>
+                            <h5 class="card-title mt-3">Guild Timeline</h5>
+                            <p class="card-text">View everyone's availability in a detailed timeline</p>
+                            <a href="{{ url_for('availability.timeline') }}" class="btn btn-success">
+                                View Timeline
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-grid-3x3-gap-fill text-warning" style="font-size: 3rem;"></i>
+                            <h5 class="card-title mt-3">Heatmap</h5>
+                            <p class="card-text">See when most players are available at a glance</p>
+                            <a href="{{ url_for('availability.heatmap') }}" class="btn btn-warning">
+                                View Heatmap
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if current_user.is_admin or current_user.is_superuser %}
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card border-danger">
+                        <div class="card-body text-center">
+                            <i class="bi bi-shield-fill text-danger" style="font-size: 2rem;"></i>
+                            <h5 class="card-title mt-2">Admin Panel</h5>
+                            <p class="card-text mb-3">Manage users and export roster data</p>
+                            <a href="{{ url_for('admin.index') }}" class="btn btn-danger">
+                                Go to Admin Panel
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-body text-center p-5">
+                            <h3>Welcome!</h3>
+                            <p class="lead">Sign up or log in to start coordinating with your guild</p>
+                            <div class="d-grid gap-2 d-md-block mt-4">
+                                <a href="{{ url_for('auth.signup') }}" class="btn btn-primary btn-lg me-2">
+                                    Sign Up
+                                </a>
+                                <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary btn-lg">
+                                    Login
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

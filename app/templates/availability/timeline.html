@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Guild Timeline - WoW TBC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4"><i class="bi bi-people-fill"></i> Guild Timeline</h2>
+            
+            <!-- Date Range and Filters -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="tl_start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="tl_start_date">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="tl_end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="tl_end_date">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="class_filter" class="form-label">Filter by Class</label>
+                            <select class="form-select" id="class_filter">
+                                <option value="">All Classes</option>
+                                <option value="Warrior">Warrior</option>
+                                <option value="Paladin">Paladin</option>
+                                <option value="Hunter">Hunter</option>
+                                <option value="Rogue">Rogue</option>
+                                <option value="Priest">Priest</option>
+                                <option value="Shaman">Shaman</option>
+                                <option value="Mage">Mage</option>
+                                <option value="Warlock">Warlock</option>
+                                <option value="Druid">Druid</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="role_filter" class="form-label">Filter by Role</label>
+                            <select class="form-select" id="role_filter">
+                                <option value="">All Roles</option>
+                                <option value="tank">Tank</option>
+                                <option value="healer">Healer</option>
+                                <option value="dps">DPS</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="confidence_filter" class="form-label">Confidence</label>
+                            <select class="form-select" id="confidence_filter">
+                                <option value="all">All</option>
+                                <option value="available">Available Only</option>
+                                <option value="available_maybe">Available + Maybe</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="sort_by" class="form-label">Sort By</label>
+                            <select class="form-select" id="sort_by">
+                                <option value="alphabetical">Alphabetical</option>
+                                <option value="most_available">Most Available</option>
+                                <option value="class">By Class</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">&nbsp;</label>
+                            <button class="btn btn-primary w-100" id="load_timeline">
+                                <i class="bi bi-arrow-clockwise"></i> Load Timeline
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Timeline Grid -->
+            <div id="timeline_grid" class="timeline-container">
+                <div class="text-center py-5">
+                    <p class="text-muted">Select a date range and click "Load Timeline" to view guild availability</p>
+                </div>
+            </div>
+            
+            <!-- Mobile View (Accordion) -->
+            <div id="timeline_mobile" class="d-md-none mt-3">
+                <!-- Will be populated by JavaScript -->
+            </div>
+            
+            <!-- Legend -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6>Legend:</h6>
+                    <div class="row">
+                        <div class="col-auto">
+                            <span class="badge bg-success me-2">&nbsp;&nbsp;&nbsp;</span> Available
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge bg-warning me-2">&nbsp;&nbsp;&nbsp;</span> Maybe
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge bg-secondary me-2">&nbsp;&nbsp;&nbsp;</span> Unavailable
+                        </div>
+                    </div>
+                    <hr>
+                    <p class="mb-0"><small><strong>Tip:</strong> Hover over time slots to see who is available</small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/timeline.js') }}"></script>
+<script>
+    // Initialize with default dates
+    $(document).ready(function() {
+        const today = new Date();
+        const weekLater = new Date(today);
+        weekLater.setDate(today.getDate() + 7);
+        
+        $('#tl_start_date').val(today.toISOString().split('T')[0]);
+        $('#tl_end_date').val(weekLater.toISOString().split('T')[0]);
+    });
+</script>
+{% endblock %}

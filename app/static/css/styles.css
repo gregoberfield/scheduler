@@ -1,0 +1,382 @@
+/* Custom Styles for WoW TBC Availability Planner */
+
+/* General */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Class Icons */
+.class-icon-small {
+    width: 24px;
+    height: 24px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
+.class-icon-medium {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+}
+
+/* Timeline Grid */
+.timeline-container,
+.heatmap-container {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 70vh;
+    position: relative;
+}
+
+.availability-grid,
+.timeline-grid-wrapper,
+.heatmap-grid-wrapper {
+    min-width: 100%;
+}
+
+.availability-table,
+.timeline-table,
+.heatmap-table {
+    font-size: 0.8rem;
+    margin-bottom: 0;
+}
+
+/* Sticky Headers */
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.time-header,
+.character-header {
+    position: sticky;
+    left: 0;
+    background: white;
+    z-index: 11;
+    font-weight: bold;
+    min-width: 60px;
+    max-width: 60px;
+    width: 60px;
+}
+
+.time-label {
+    position: sticky;
+    left: 0;
+    background: #f8f9fa;
+    font-weight: 500;
+    font-size: 0.75rem;
+    text-align: center;
+    min-width: 60px;
+    max-width: 60px;
+    width: 60px;
+    white-space: nowrap;
+}
+
+.character-cell {
+    position: sticky;
+    left: 0;
+    background: white;
+    border-right: 2px solid #dee2e6;
+    white-space: nowrap;
+    min-width: 200px;
+}
+
+.character-name {
+    font-weight: 500;
+}
+
+/* Day Headers */
+.day-header {
+    background: #e9ecef;
+    font-weight: bold;
+    text-align: center;
+    border-left: 2px solid #adb5bd !important;
+}
+
+/* Slot Cells */
+.slot-cell,
+.timeline-cell,
+.heatmap-cell {
+    width: 12px;
+    height: 20px;
+    padding: 0 !important;
+    cursor: pointer;
+    border: 1px solid #dee2e6;
+    transition: all 0.1s;
+}
+
+.slot-cell:hover,
+.timeline-cell:hover {
+    opacity: 0.8;
+    transform: scale(1.1);
+}
+
+/* Availability States */
+.state-unavailable {
+    background-color: #e9ecef !important;
+}
+
+.state-maybe {
+    background-color: #ffc107 !important;
+}
+
+.state-available {
+    background-color: #28a745 !important;
+}
+
+/* Heatmap Intensity */
+.intensity-0 {
+    background-color: #f8f9fa !important;
+}
+
+.intensity-1 {
+    background-color: #d4edda !important;
+}
+
+.intensity-2 {
+    background-color: #9fdfb0 !important;
+}
+
+.intensity-3 {
+    background-color: #6ec587 !important;
+}
+
+.intensity-4 {
+    background-color: #4caf50 !important;
+}
+
+.intensity-5 {
+    background-color: #2e7d32 !important;
+}
+
+.heatmap-cell:hover {
+    outline: 2px solid #007bff;
+    z-index: 5;
+}
+
+/* Heatmap Legend */
+.heatmap-legend {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.heatmap-legend .heatmap-cell {
+    width: 30px;
+    height: 20px;
+    display: inline-block;
+}
+
+/* Mobile Slots */
+.mobile-slots {
+    margin-top: 10px;
+}
+
+.day-section {
+    margin-bottom: 15px;
+}
+
+.day-section h6 {
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.slots-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+}
+
+.mobile-slot {
+    width: 8px;
+    height: 20px;
+    display: inline-block;
+    border: 1px solid #dee2e6;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .timeline-grid-wrapper,
+    .heatmap-grid-wrapper {
+        display: none;
+    }
+    
+    .character-cell {
+        min-width: 150px;
+    }
+    
+    .time-label {
+        min-width: 50px;
+        font-size: 0.7rem;
+    }
+}
+
+@media (min-width: 769px) {
+    #timeline_mobile {
+        display: none;
+    }
+}
+
+/* Role Badges */
+.badge.bg-primary {
+    /* Tank - Blue */
+    background-color: #0d6efd !important;
+}
+
+.badge.bg-success {
+    /* Healer - Green */
+    background-color: #198754 !important;
+}
+
+.badge.bg-danger {
+    /* DPS - Red */
+    background-color: #dc3545 !important;
+}
+
+/* Footer */
+.footer {
+    background-color: #f8f9fa;
+    margin-top: auto;
+}
+
+/* Quick Fill Buttons */
+.quick-fill-buttons .btn-group {
+    margin-bottom: 0.5rem;
+}
+
+/* Loading State */
+.loading {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Tooltips */
+[title] {
+    cursor: help;
+}
+
+/* Cards */
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+/* Table Improvements */
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Selection Mode Display */
+#current_mode_display {
+    font-size: 0.9rem;
+}
+
+/* Scrollbar Styling for Timeline/Heatmap */
+.timeline-container::-webkit-scrollbar,
+.heatmap-container::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.timeline-container::-webkit-scrollbar-track,
+.heatmap-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.timeline-container::-webkit-scrollbar-thumb,
+.heatmap-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 5px;
+}
+
+.timeline-container::-webkit-scrollbar-thumb:hover,
+.heatmap-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Accordion Customization */
+.accordion-button {
+    font-weight: 500;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: #e7f1ff;
+    color: #0d6efd;
+}
+
+/* Admin Panel */
+.admin-badge {
+    font-size: 0.8rem;
+}
+
+/* Form Improvements */
+.form-label {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.form-select,
+.form-control {
+    font-size: 0.95rem;
+}
+
+/* Alert Improvements */
+.alert {
+    border-radius: 0.375rem;
+}
+
+/* Home Page Cards */
+.card.h-100 {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card.h-100:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Navigation */
+.navbar-brand i {
+    font-size: 1.2rem;
+}
+
+.nav-link i {
+    margin-right: 4px;
+}
+
+/* Dropdown Menu */
+.dropdown-item-text {
+    font-weight: 500;
+    color: #6c757d;
+}
+
+/* Button Improvements */
+.btn {
+    transition: all 0.2s;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* Table Cell Borders - Day Separators */
+.availability-table td.first-day,
+.heatmap-table td.first-day {
+    border-left: 2px solid #adb5bd;
+}
+
+/* Day header styling */
+.day-header {
+    border-left: 2px solid #adb5bd !important;
+}

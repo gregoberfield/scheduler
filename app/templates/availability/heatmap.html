@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Heatmap - WoW TBC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4"><i class="bi bi-grid-3x3-gap-fill"></i> Availability Heatmap</h2>
+            
+            <!-- Date Range -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="hm_start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="hm_start_date">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="hm_end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="hm_end_date">
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-primary w-100" id="load_heatmap">
+                                <i class="bi bi-arrow-clockwise"></i> Load Heatmap
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Heatmap Grid -->
+            <div id="heatmap_grid" class="heatmap-container">
+                <div class="text-center py-5">
+                    <p class="text-muted">Select a date range and click "Load Heatmap" to visualize availability</p>
+                </div>
+            </div>
+            
+            <!-- Legend -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6>Color Intensity:</h6>
+                    <div class="d-flex align-items-center">
+                        <span class="me-2">Low</span>
+                        <div class="heatmap-legend">
+                            <span class="heatmap-cell intensity-0">&nbsp;</span>
+                            <span class="heatmap-cell intensity-1">&nbsp;</span>
+                            <span class="heatmap-cell intensity-2">&nbsp;</span>
+                            <span class="heatmap-cell intensity-3">&nbsp;</span>
+                            <span class="heatmap-cell intensity-4">&nbsp;</span>
+                            <span class="heatmap-cell intensity-5">&nbsp;</span>
+                        </div>
+                        <span class="ms-2">High</span>
+                    </div>
+                    <hr>
+                    <p class="mb-0"><small><strong>Tip:</strong> Click on a cell to jump to that time in the timeline view</small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/heatmap.js') }}"></script>
+<script>
+    // Initialize with default dates
+    $(document).ready(function() {
+        const today = new Date();
+        const weekLater = new Date(today);
+        weekLater.setDate(today.getDate() + 7);
+        
+        $('#hm_start_date').val(today.toISOString().split('T')[0]);
+        $('#hm_end_date').val(weekLater.toISOString().split('T')[0]);
+    });
+</script>
+{% endblock %}

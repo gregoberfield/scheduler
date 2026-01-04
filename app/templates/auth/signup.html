@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - WoW TBC Availability{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="bi bi-person-plus-fill"></i> Sign Up</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('auth.signup') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <label for="character_name" class="form-label">Character Name</label>
+                            <input type="text" class="form-control" id="character_name" name="character_name" required autofocus>
+                            <small class="form-text text-muted">This will be your username</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="wow_class" class="form-label">Class</label>
+                            <select class="form-select" id="wow_class" name="wow_class" required>
+                                <option value="">Select your class...</option>
+                                <option value="Warrior">Warrior</option>
+                                <option value="Paladin">Paladin</option>
+                                <option value="Hunter">Hunter</option>
+                                <option value="Rogue">Rogue</option>
+                                <option value="Priest">Priest</option>
+                                <option value="Shaman">Shaman</option>
+                                <option value="Mage">Mage</option>
+                                <option value="Warlock">Warlock</option>
+                                <option value="Druid">Druid</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Roles (optional)</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="roles" value="tank" id="role_tank">
+                                <label class="form-check-label" for="role_tank">
+                                    <i class="bi bi-shield-fill text-primary"></i> Tank
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="roles" value="healer" id="role_healer">
+                                <label class="form-check-label" for="role_healer">
+                                    <i class="bi bi-heart-fill text-success"></i> Healer
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="roles" value="dps" id="role_dps">
+                                <label class="form-check-label" for="role_dps">
+                                    <i class="bi bi-lightning-fill text-danger"></i> DPS
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">Sign Up</button>
+                        </div>
+                    </form>
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <p class="mb-0">Already have an account? <a href="{{ url_for('auth.login') }}">Login</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
