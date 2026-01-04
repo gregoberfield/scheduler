@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
+from sqlalchemy import func
 from app import db, limiter
 from app.models.user import User
 import bleach
@@ -24,7 +25,7 @@ def signup():
             flash('All fields are required.', 'danger')
             return render_template('auth/signup.html')
         
-        if User.query.filter_by(character_name=character_name).first():
+        if User.query.filter(func.lower(User.character_name) == func.lower(character_name)).first():
             flash('Character name already exists.', 'danger')
             return render_template('auth/signup.html')
         
@@ -65,7 +66,7 @@ def login():
             flash('Both fields are required.', 'danger')
             return render_template('auth/login.html')
         
-        user = User.query.filter_by(character_name=character_name).first()
+        user = User.query.filter(func.lower(User.character_name) == func.lower(character_name)).first()
         
         if user and user.check_password(password):
             login_user(user, remember=True)
@@ -103,7 +104,7 @@ def api_signup():
     if not character_name or not wow_class or not password:
         return jsonify({'error': 'All fields are required'}), 400
     
-    if User.query.filter_by(character_name=character_name).first():
+    if User.query.filter(func.lower(User.character_name) == func.lower(character_name)).first():
         return jsonify({'error': 'Character name already exists'}), 400
     
     # Create user
@@ -142,7 +143,7 @@ def api_login():
     if not character_name or not password:
         return jsonify({'error': 'Both fields are required'}), 400
     
-    user = User.query.filter_by(character_name=character_name).first()
+    user = User.query.filter(func.lower(User.character_name) == func.lower(character_name)).first()
     
     if user and user.check_password(password):
         login_user(user, remember=True)

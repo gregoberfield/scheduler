@@ -125,6 +125,16 @@ In PostgreSQL shell:
 CREATE DATABASE tbc_scheduler;
 CREATE USER scheduler_user WITH ENCRYPTED PASSWORD 'STRONG_PASSWORD_HERE';
 GRANT ALL PRIVILEGES ON DATABASE tbc_scheduler TO scheduler_user;
+
+-- Connect to the database
+\c tbc_scheduler
+
+-- Grant schema permissions (required for PostgreSQL 15+)
+GRANT ALL ON SCHEMA public TO scheduler_user;
+GRANT CREATE ON SCHEMA public TO scheduler_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO scheduler_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO scheduler_user;
+
 \q
 ```
 
