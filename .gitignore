@@ -34,6 +34,9 @@ instance/
 
 # Environment
 .env
+.env.production
+.env.local
+.env.*.local
 .flaskenv
 
 # IDE
