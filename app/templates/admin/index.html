@@ -28,6 +28,22 @@
                 </div>
             </div>
             
+            {% if current_user.is_superuser %}
+            <!-- Purge Scheduling Data (Superuser Only) -->
+            <div class="card mb-4 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Purge Scheduling Data</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-danger"><strong>Warning:</strong> This will permanently delete all availability and scheduling data, but will preserve all user accounts.</p>
+                    <p class="mb-3">Use this to reset the schedule for a new event or raid tier while keeping your guild roster intact.</p>
+                    <button id="purgeScheduleBtn" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Purge All Scheduling Data
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+            
             <!-- User Management -->
             <div class="card">
                 <div class="card-header bg-dark text-white">
@@ -113,6 +129,28 @@
 {% block extra_js %}
 <script>
     $(document).ready(function() {
+        // Purge scheduling data
+        $('#purgeScheduleBtn').click(function() {
+            const confirmText = 'Are you sure you want to DELETE ALL scheduling data? This action cannot be undone!\n\nType "PURGE" to confirm:';
+            const userInput = prompt(confirmText);
+            
+            if (userInput === 'PURGE') {
+                $.ajax({
+                    url: '/admin/api/purge-schedule',
+                    method: 'POST',
+                    success: function(response) {
+                        alert(`Success! ${response.message}`);
+                        location.reload();
+                    },
+                    error: function(xhr) {
+                        alert('Error: ' + (xhr.responseJSON?.error || 'Failed to purge data'));
+                    }
+                });
+            } else if (userInput !== null) {
+                alert('Purge cancelled. You must type "PURGE" exactly to confirm.');
+            }
+        });
+        
         // Promote user
         $('.promote-btn').click(function() {
             const userId = $(this).data('user-id');

@@ -375,6 +375,9 @@ echo "=== Starting Deployment ==="
 # Navigate to app directory
 cd /opt/scheduler/app
 
+# Create backup directory if it doesn't exist
+mkdir -p /opt/scheduler/backups
+
 # Backup database (if using SQLite, for PostgreSQL use pg_dump)
 echo "Creating database backup..."
 sudo -u postgres pg_dump tbc_scheduler > /opt/scheduler/backups/db_backup_$(date +%Y%m%d_%H%M%S).sql

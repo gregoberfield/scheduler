@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Profile - WoW TBC{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-person-circle"></i> Edit Profile</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('user.update_profile_form') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <label for="character_name" class="form-label">Character Name</label>
+                            <input type="text" class="form-control" id="character_name" value="{{ current_user.character_name }}" disabled>
+                            <small class="form-text text-muted">Character name cannot be changed</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="wow_class" class="form-label">Class</label>
+                            <select class="form-select" id="wow_class" name="wow_class" required>
+                                <option value="">Select your class...</option>
+                                <option value="Warrior" {% if current_user.wow_class == 'Warrior' %}selected{% endif %}>Warrior</option>
+                                <option value="Paladin" {% if current_user.wow_class == 'Paladin' %}selected{% endif %}>Paladin</option>
+                                <option value="Hunter" {% if current_user.wow_class == 'Hunter' %}selected{% endif %}>Hunter</option>
+                                <option value="Rogue" {% if current_user.wow_class == 'Rogue' %}selected{% endif %}>Rogue</option>
+                                <option value="Priest" {% if current_user.wow_class == 'Priest' %}selected{% endif %}>Priest</option>
+                                <option value="Shaman" {% if current_user.wow_class == 'Shaman' %}selected{% endif %}>Shaman</option>
+                                <option value="Mage" {% if current_user.wow_class == 'Mage' %}selected{% endif %}>Mage</option>
+                                <option value="Warlock" {% if current_user.wow_class == 'Warlock' %}selected{% endif %}>Warlock</option>
+                                <option value="Druid" {% if current_user.wow_class == 'Druid' %}selected{% endif %}>Druid</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Roles</label>
+                            {% set user_roles = current_user.get_roles() %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="roles" value="tank" id="role_tank" 
+                                       {% if 'tank' in user_roles %}checked{% endif %}>
+                                <label class="form-check-label" for="role_tank">
+                                    <i class="bi bi-shield-fill text-primary"></i> Tank
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="roles" value="healer" id="role_healer"
+                                       {% if 'healer' in user_roles %}checked{% endif %}>
+                                <label class="form-check-label" for="role_healer">
+                                    <i class="bi bi-heart-fill text-success"></i> Healer
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="roles" value="dps" id="role_dps"
+                                       {% if 'dps' in user_roles %}checked{% endif %}>
+                                <label class="form-check-label" for="role_dps">
+                                    <i class="bi bi-lightning-fill text-danger"></i> DPS
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label">New Password (optional)</label>
+                            <input type="password" class="form-control" id="password" name="password">
+                            <small class="form-text text-muted">Leave blank to keep current password</small>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Changes
+                            </button>
+                            <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

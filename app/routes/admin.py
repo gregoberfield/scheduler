@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from functools import wraps
 from app import db
 from app.models.user import User
+from app.models.availability import AvailabilitySlot, AggregateSlotCount
 import csv
 import io
 
@@ -79,6 +80,36 @@ def demote_user(user_id):
         'success': True,
         'user': user.to_dict()
     }), 200
+
+
+@bp.route('/api/purge-schedule', methods=['POST'])
+@login_required
+@admin_required
+def purge_schedule():
+    """Purge all scheduling data (availability and aggregates) while preserving users"""
+    if not current_user.is_superuser:
+        return jsonify({'error': 'Only superusers can purge scheduling data'}), 403
+    
+    try:
+        # Delete all availability slots
+        availability_count = AvailabilitySlot.query.count()
+        AvailabilitySlot.query.delete()
+        
+        # Delete all aggregate counts
+        aggregate_count = AggregateSlotCount.query.count()
+        AggregateSlotCount.query.delete()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Purged {availability_count} availability slots and {aggregate_count} aggregate counts',
+            'availability_deleted': availability_count,
+            'aggregates_deleted': aggregate_count
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to purge data: {str(e)}'}), 500
 
 
 @bp.route('/api/export/roster', methods=['GET'])
