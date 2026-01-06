@@ -35,15 +35,16 @@ def create_app(config_name=None):
     login_manager.login_message = 'Please log in to access this page.'
     
     # Import models
-    from app.models import user, availability
+    from app.models import user, availability, group
     
     # Register blueprints
-    from app.routes import auth, user as user_routes, availability as avail_routes, admin
+    from app.routes import auth, user as user_routes, availability as avail_routes, admin, group
     
     app.register_blueprint(auth.bp)
     app.register_blueprint(user_routes.bp)
     app.register_blueprint(avail_routes.bp)
     app.register_blueprint(admin.bp)
+    app.register_blueprint(group.bp)
     
     # Register main routes
     from app.routes import main

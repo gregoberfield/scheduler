@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Pending Invitations - WoW TBC{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4"><i class="bi bi-envelope"></i> Pending Group Invitations</h2>
+            
+            {% if invites %}
+            <div class="row">
+                {% for invite in invites %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">{{ invite.group.name }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                <i class="bi bi-person-fill"></i> 
+                                <strong>{{ invite.inviter.character_name }}</strong> invited you to join their group.
+                            </p>
+                            
+                            <p class="text-muted">
+                                <small>
+                                    <i class="bi bi-clock"></i> 
+                                    {{ invite.created_at.strftime('%b %d, %Y at %I:%M %p') }}
+                                </small>
+                            </p>
+                            
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-success flex-fill accept-invite-btn" 
+                                        data-group-id="{{ invite.group_id }}" 
+                                        data-invite-id="{{ invite.id }}">
+                                    <i class="bi bi-check-circle"></i> Accept
+                                </button>
+                                <button class="btn btn-danger flex-fill decline-invite-btn" 
+                                        data-group-id="{{ invite.group_id }}" 
+                                        data-invite-id="{{ invite.id }}">
+                                    <i class="bi bi-x-circle"></i> Decline
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> You have no pending group invitations.
+            </div>
+            {% endif %}
+            
+            <div class="mt-4">
+                <a href="{{ url_for('group.index') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Groups
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Accept invite
+    $('.accept-invite-btn').click(function() {
+        const btn = $(this);
+        const groupId = btn.data('group-id');
+        const inviteId = btn.data('invite-id');
+        
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Accepting...');
+        
+        $.ajax({
+            url: `/api/groups/${groupId}/invites/${inviteId}/accept`,
+            method: 'POST',
+            success: function(response) {
+                alert(response.message);
+                location.reload();
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html('<i class="bi bi-check-circle"></i> Accept');
+                alert('Error: ' + (xhr.responseJSON?.error || 'Failed to accept invite'));
+            }
+        });
+    });
+    
+    // Decline invite
+    $('.decline-invite-btn').click(function() {
+        if (!confirm('Are you sure you want to decline this invitation?')) {
+            return;
+        }
+        
+        const btn = $(this);
+        const groupId = btn.data('group-id');
+        const inviteId = btn.data('invite-id');
+        
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Declining...');
+        
+        $.ajax({
+            url: `/api/groups/${groupId}/invites/${inviteId}/decline`,
+            method: 'POST',
+            success: function(response) {
+                alert(response.message);
+                location.reload();
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html('<i class="bi bi-x-circle"></i> Decline');
+                alert('Error: ' + (xhr.responseJSON?.error || 'Failed to decline invite'));
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

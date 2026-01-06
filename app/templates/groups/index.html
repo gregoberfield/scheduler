@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}My Groups - WoW TBC{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-people-fill"></i> My Groups</h2>
+                <a href="{{ url_for('group.create_page') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Create New Group
+                </a>
+            </div>
+            
+            {% if groups %}
+            <div class="row">
+                {% for group in groups %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header {% if group.is_leader(current_user.id) %}bg-primary text-white{% else %}bg-secondary text-white{% endif %}">
+                            <h5 class="mb-0">
+                                {{ group.name }}
+                                {% if group.is_leader(current_user.id) %}
+                                <span class="badge bg-warning text-dark float-end">Leader</span>
+                                {% endif %}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                <i class="bi bi-person-fill"></i> 
+                                <strong>{{ group.memberships.count() }}/{{ group.max_size }}</strong> members
+                            </p>
+                            
+                            <!-- Member icons -->
+                            <div class="mb-3">
+                                {% for membership in group.memberships.limit(5).all() %}
+                                <img src="{{ url_for('static', filename='img/classes/' + membership.user.wow_class.lower() + '_small.gif') }}" 
+                                     alt="{{ membership.user.wow_class }}" 
+                                     class="class-icon-small"
+                                     title="{{ membership.user.character_name }} - {{ membership.user.wow_class }}">
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Role composition -->
+                            {% set members = group.get_members() %}
+                            {% set roles = {'tank': 0, 'healer': 0, 'dps': 0} %}
+                            {% for member in members %}
+                                {% for role in member.get_roles() %}
+                                    {% if role in roles %}
+                                        {% set _ = roles.update({role: roles[role] + 1}) %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                            
+                            <div class="mb-3">
+                                <small class="text-muted">Roles:</small><br>
+                                <span class="badge bg-primary">{{ roles.tank }} <i class="bi bi-shield-fill"></i></span>
+                                <span class="badge bg-success">{{ roles.healer }} <i class="bi bi-heart-fill"></i></span>
+                                <span class="badge bg-danger">{{ roles.dps }} <i class="bi bi-lightning-fill"></i></span>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('group.detail', group_id=group.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-gear"></i> Manage Group
+                                </a>
+                                <a href="{{ url_for('group.schedule', group_id=group.id) }}" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-calendar3"></i> View Schedule
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-footer text-muted">
+                            <small>Created {{ group.created_at.strftime('%b %d, %Y') }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> You're not in any groups yet. Create one to start coordinating with your guildmates!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

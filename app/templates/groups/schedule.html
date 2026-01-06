@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}{{ group.name }} Schedule - WoW TBC{% endblock %}
+
+{% block extra_css %}
+<style>
+    .member-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .member-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        border-radius: 5px;
+        background-color: #f8f9fa;
+    }
+    .member-color-box {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #000;
+        border-radius: 3px;
+    }
+    .grid-cell-overlay {
+        position: relative;
+    }
+    .availability-indicator {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        font-size: 0.7em;
+        font-weight: bold;
+        padding: 2px 5px;
+        border-radius: 3px;
+        background-color: rgba(255, 255, 255, 0.9);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-calendar3"></i> {{ group.name }} - Group Schedule</h2>
+                <a href="{{ url_for('group.detail', group_id=group.id) }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Group
+                </a>
+            </div>
+            
+            <!-- Member Legend -->
+            <div class="member-legend" id="memberLegend">
+                {% for member in members %}
+                <div class="member-legend-item">
+                    <div class="member-color-box" data-user-id="{{ member.id }}" style="background-color: {{ ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][loop.index0 % 5] }};"></div>
+                    <img src="{{ url_for('static', filename='img/classes/' + member.wow_class.lower() + '_small.gif') }}" 
+                         alt="{{ member.wow_class }}" 
+                         class="class-icon-small">
+                    <span>{{ member.character_name }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Availability Summary -->
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 
+                Cells show how many members are available. Darker green means more members available.
+            </div>
+            
+            <!-- Schedule Grid -->
+            <div id="scheduleGrid"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    const groupId = {{ group.id }};
+    const members = {{ members | tojson }};
+    const memberColors = {
+        {% for member in members %}
+        {{ member.id }}: '{{ ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][loop.index0 % 5] }}'{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+    
+    // TBC launch: May 19, 2025 at 18:00 server time (6 PM)
+    const launchDate = new Date('2025-05-19T18:00:00');
+    const launchSlot = Math.floor(launchDate.getTime() / 1000 / 1800);
+    
+    // Show 2 weeks (14 days) starting from launch
+    const startSlot = launchSlot;
+    const endSlot = startSlot + (14 * 48) - 1; // 14 days * 48 slots per day
+    
+    // Time slots (30-min intervals)
+    const timeSlots = [];
+    for (let hour = 0; hour < 24; hour++) {
+        timeSlots.push(`${String(hour).padStart(2, '0')}:00`);
+        timeSlots.push(`${String(hour).padStart(2, '0')}:30`);
+    }
+    
+    // Days of week
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    
+    // Load group schedule data
+    $.ajax({
+        url: `/api/groups/${groupId}/schedule-data?start_slot=${startSlot}&end_slot=${endSlot}`,
+        method: 'GET',
+        success: function(response) {
+            renderGrid(response.slots);
+        },
+        error: function(xhr) {
+            alert('Error loading schedule: ' + (xhr.responseJSON?.error || 'Unknown error'));
+        }
+    });
+    
+    function renderGrid(slots) {
+        // Create slot lookup
+        const slotLookup = {};
+        slots.forEach(slot => {
+            slotLookup[slot.slot_index] = slot;
+        });
+        
+        let html = '<div class="table-responsive"><table class="table table-bordered table-sm availability-grid">';
+        html += '<thead><tr><th>Time</th>';
+        
+        // Header row with days
+        for (let d = 0; d < 14; d++) {
+            const slotIndex = startSlot + (d * 48);
+            const date = new Date(slotIndex * 1800 * 1000);
+            const dayName = days[date.getDay() === 0 ? 6 : date.getDay() - 1];
+            const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
+            html += `<th>${dayName}<br><small>${dateStr}</small></th>`;
+        }
+        html += '</tr></thead><tbody>';
+        
+        // Grid rows
+        for (let t = 0; t < timeSlots.length; t++) {
+            html += `<tr><td class="time-label">${timeSlots[t]}</td>`;
+            
+            for (let d = 0; d < 14; d++) {
+                const slotIndex = startSlot + (d * 48) + t;
+                const slotData = slotLookup[slotIndex];
+                const availableCount = slotData ? slotData.available_count : 0;
+                const totalMembers = members.length;
+                
+                // Calculate background color intensity based on availability
+                let bgColor = '#f8f9fa'; // default gray
+                let textColor = '#000';
+                
+                if (availableCount > 0) {
+                    const intensity = availableCount / totalMembers;
+                    // Green scale: lighter to darker as more members available
+                    const greenValue = Math.floor(255 - (intensity * 155)); // 255 to 100
+                    bgColor = `rgb(${greenValue}, 255, ${greenValue})`;
+                    
+                    if (availableCount === totalMembers) {
+                        bgColor = '#10b981'; // Bright green for all members
+                        textColor = '#fff';
+                    }
+                }
+                
+                html += `<td class="grid-cell" style="background-color: ${bgColor}; color: ${textColor}; position: relative; min-width: 40px; height: 20px;" data-slot="${slotIndex}">`;
+                if (availableCount > 0) {
+                    html += `<span class="availability-indicator">${availableCount}/${totalMembers}</span>`;
+                }
+                html += '</td>';
+            }
+            
+            html += '</tr>';
+        }
+        
+        html += '</tbody></table></div>';
+        $('#scheduleGrid').html(html);
+    }
+});
+</script>
+
+<style>
+.availability-grid {
+    font-size: 0.8em;
+}
+.availability-grid th {
+    background-color: #343a40;
+    color: white;
+    text-align: center;
+    vertical-align: middle;
+}
+.availability-grid .time-label {
+    background-color: #6c757d;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    min-width: 60px;
+}
+.availability-grid .grid-cell {
+    cursor: default;
+    text-align: center;
+    vertical-align: middle;
+}
+</style>
+{% endblock %}

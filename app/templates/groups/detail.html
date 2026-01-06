@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}{{ group.name }} - WoW TBC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="bi bi-people-fill"></i> {{ group.name }}
+                    {% if group.is_leader(current_user.id) %}
+                    <span class="badge bg-warning text-dark">Leader</span>
+                    {% endif %}
+                </h2>
+                <a href="{{ url_for('group.index') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Groups
+                </a>
+            </div>
+            
+            <div class="row">
+                <!-- Members List -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-person-fill"></i> Members ({{ group.memberships.count() }}/{{ group.max_size }})
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Character</th>
+                                            <th>Class</th>
+                                            <th>Roles</th>
+                                            <th>Joined</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for membership in group.memberships.order_by('joined_at').all() %}
+                                        <tr>
+                                            <td>
+                                                <img src="{{ url_for('static', filename='img/classes/' + membership.user.wow_class.lower() + '_small.gif') }}" 
+                                                     alt="{{ membership.user.wow_class }}" 
+                                                     class="class-icon-small">
+                                                {{ membership.user.character_name }}
+                                                {% if group.leader_id == membership.user_id %}
+                                                <span class="badge bg-warning text-dark">Leader</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ membership.user.wow_class }}</td>
+                                            <td>
+                                                {% for role in membership.user.get_roles() %}
+                                                    {% if role == 'tank' %}
+                                                        <span class="badge bg-primary">Tank</span>
+                                                    {% elif role == 'healer' %}
+                                                        <span class="badge bg-success">Healer</span>
+                                                    {% elif role == 'dps' %}
+                                                        <span class="badge bg-danger">DPS</span>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </td>
+                                            <td>{{ membership.joined_at.strftime('%b %d') }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0"><i class="bi bi-gear"></i> Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('group.schedule', group_id=group.id) }}" class="btn btn-success">
+                                    <i class="bi bi-calendar3"></i> View Group Schedule
+                                </a>
+                                
+                                {% if group.is_leader(current_user.id) %}
+                                <button id="inviteBtn" class="btn btn-primary" {% if group.is_full() %}disabled{% endif %}>
+                                    <i class="bi bi-envelope-plus"></i> Invite Players
+                                </button>
+                                {% if group.is_full() %}
+                                <small class="text-muted">Group is full (5/5 members)</small>
+                                {% endif %}
+                                {% endif %}
+                                
+                                <button id="leaveGroupBtn" class="btn btn-warning">
+                                    <i class="bi bi-box-arrow-right"></i> Leave Group
+                                </button>
+                                
+                                {% if group.is_leader(current_user.id) %}
+                                <button id="disbandGroupBtn" class="btn btn-danger">
+                                    <i class="bi bi-trash"></i> Disband Group
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Role Composition Summary -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Role Composition</h5>
+                        </div>
+                        <div class="card-body">
+                            {% set members = group.get_members() %}
+                            {% set roles = {'tank': 0, 'healer': 0, 'dps': 0} %}
+                            {% for member in members %}
+                                {% for role in member.get_roles() %}
+                                    {% if role in roles %}
+                                        {% set _ = roles.update({role: roles[role] + 1}) %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                            
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="p-3 bg-primary text-white rounded">
+                                        <h1>{{ roles.tank }}</h1>
+                                        <p class="mb-0"><i class="bi bi-shield-fill"></i> Tank</p>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-3 bg-success text-white rounded">
+                                        <h1>{{ roles.healer }}</h1>
+                                        <p class="mb-0"><i class="bi bi-heart-fill"></i> Healer</p>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="p-3 bg-danger text-white rounded">
+                                        <h1>{{ roles.dps }}</h1>
+                                        <p class="mb-0"><i class="bi bi-lightning-fill"></i> DPS</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info mt-3 mb-0">
+                                <small><i class="bi bi-info-circle"></i> This is advisory only. You can create any composition you want!</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invite Modal -->
+<div class="modal fade" id="inviteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Invite Player to {{ group.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="userSelect" class="form-label">Select Player</label>
+                    <select class="form-select" id="userSelect">
+                        <option value="">Choose a player...</option>
+                        {% for user in available_users %}
+                        <option value="{{ user.id }}">
+                            {{ user.character_name }} ({{ user.wow_class }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="sendInviteBtn">Send Invite</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    const groupId = {{ group.id }};
+    const inviteModal = new bootstrap.Modal(document.getElementById('inviteModal'));
+    
+    // Show invite modal
+    $('#inviteBtn').click(function() {
+        inviteModal.show();
+    });
+    
+    // Send invite
+    $('#sendInviteBtn').click(function() {
+        const userId = $('#userSelect').val();
+        if (!userId) {
+            alert('Please select a player');
+            return;
+        }
+        
+        $.ajax({
+            url: `/api/groups/${groupId}/invite`,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ user_id: parseInt(userId) }),
+            success: function(response) {
+                alert('Invite sent successfully!');
+                inviteModal.hide();
+                location.reload();
+            },
+            error: function(xhr) {
+                alert('Error: ' + (xhr.responseJSON?.error || 'Failed to send invite'));
+            }
+        });
+    });
+    
+    // Leave group
+    $('#leaveGroupBtn').click(function() {
+        if (confirm('Are you sure you want to leave {{ group.name }}?')) {
+            $.ajax({
+                url: `/api/groups/${groupId}/leave`,
+                method: 'DELETE',
+                success: function(response) {
+                    alert(response.message);
+                    window.location.href = '/groups';
+                },
+                error: function(xhr) {
+                    alert('Error: ' + (xhr.responseJSON?.error || 'Failed to leave group'));
+                }
+            });
+        }
+    });
+    
+    // Disband group
+    $('#disbandGroupBtn').click(function() {
+        const groupName = '{{ group.name }}';
+        const confirmText = `Disband group ${groupName}? This will remove all members and cannot be undone.\n\nType the group name to confirm:`;
+        const userInput = prompt(confirmText);
+        
+        if (userInput === groupName) {
+            $.ajax({
+                url: `/api/groups/${groupId}`,
+                method: 'DELETE',
+                contentType: 'application/json',
+                data: JSON.stringify({ name: groupName }),
+                success: function(response) {
+                    alert(response.message);
+                    window.location.href = '/groups';
+                },
+                error: function(xhr) {
+                    alert('Error: ' + (xhr.responseJSON?.error || 'Failed to disband group'));
+                }
+            });
+        } else if (userInput !== null) {
+            alert('Group name does not match. Disband cancelled.');
+        }
+    });
+});
+</script>
+{% endblock %}

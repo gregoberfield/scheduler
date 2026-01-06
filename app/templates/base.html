@@ -44,6 +44,16 @@
                             <i class="bi bi-grid-3x3-gap-fill"></i> Heatmap
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('group.index') }}">
+                            <i class="bi bi-people"></i> Groups
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('availability.find_matches') }}">
+                            <i class="bi bi-search"></i> Find Players
+                        </a>
+                    </li>
                     {% if current_user.is_admin or current_user.is_superuser %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('admin.index') }}">
@@ -65,6 +75,10 @@
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><span class="dropdown-item-text">{{ current_user.wow_class }}</span></li>
                             <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('group.invitations') }}">
+                                <i class="bi bi-envelope"></i> Invitations
+                                <span class="badge bg-danger" id="inviteBadge" style="display: none;">0</span>
+                            </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('user.profile') }}">
                                 <i class="bi bi-person-circle"></i> Edit Profile
                             </a></li>
@@ -128,6 +142,21 @@
                 }
             }
         });
+        
+        {% if current_user.is_authenticated %}
+        // Load pending invitation count
+        $(document).ready(function() {
+            $.ajax({
+                url: '/api/invitations/pending',
+                method: 'GET',
+                success: function(response) {
+                    if (response.count > 0) {
+                        $('#inviteBadge').text(response.count).show();
+                    }
+                }
+            });
+        });
+        {% endif %}
     </script>
     
     {% block extra_js %}{% endblock %}

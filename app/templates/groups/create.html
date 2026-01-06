@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Create Group - WoW TBC{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-plus-circle"></i> Create New Group</h4>
+                </div>
+                <div class="card-body">
+                    <p>Create a new 5-person party group. A fun name will be automatically generated for your group!</p>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 
+                        You will be the group leader and can invite up to 4 other players.
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button id="createGroupBtn" class="btn btn-primary btn-lg">
+                            <i class="bi bi-people-fill"></i> Create Group
+                        </button>
+                        <a href="{{ url_for('group.index') }}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#createGroupBtn').click(function() {
+        const btn = $(this);
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Creating...');
+        
+        $.ajax({
+            url: '/api/groups',
+            method: 'POST',
+            success: function(response) {
+                alert(`Success! Your group "${response.group.name}" has been created!`);
+                window.location.href = '/groups/' + response.group.id;
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html('<i class="bi bi-people-fill"></i> Create Group');
+                alert('Error: ' + (xhr.responseJSON?.error || 'Failed to create group'));
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

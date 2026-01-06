@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Find Available Players - WoW TBC{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4"><i class="bi bi-search"></i> Find Available Guildmates</h2>
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> 
+                This shows other guild members who are available at the same times as you during the launch window.
+            </div>
+            
+            <div id="matchesContainer">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Finding matches...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // TBC launch: May 19, 2025 at 18:00 server time (6 PM)
+    const launchDate = new Date('2025-05-19T18:00:00');
+    const launchSlot = Math.floor(launchDate.getTime() / 1000 / 1800);
+    
+    // Show 2 weeks (14 days) starting from launch
+    const startSlot = launchSlot;
+    const endSlot = startSlot + (14 * 48) - 1;
+    
+    // Load matches
+    $.ajax({
+        url: `/api/availability/find-matches?start_slot=${startSlot}&end_slot=${endSlot}`,
+        method: 'GET',
+        success: function(response) {
+            renderMatches(response);
+        },
+        error: function(xhr) {
+            $('#matchesContainer').html(`
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    Error loading matches: ${xhr.responseJSON?.error || 'Unknown error'}
+                </div>
+            `);
+        }
+    });
+    
+    // Get user's groups for invite dropdown
+    let userGroups = [];
+    $.ajax({
+        url: '/api/groups',
+        method: 'GET',
+        success: function(response) {
+            if (response.groups) {
+                userGroups = response.groups.filter(g => g.is_leader && !g.is_full);
+            }
+        }
+    });
+    
+    function renderMatches(data) {
+        if (data.my_slot_count === 0) {
+            $('#matchesContainer').html(`
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle"></i> 
+                    You haven't set any availability yet. Visit 
+                    <a href="/my-availability">My Availability</a> to mark when you're free!
+                </div>
+            `);
+            return;
+        }
+        
+        if (data.matches.length === 0) {
+            $('#matchesContainer').html(`
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> 
+                    No other guild members have overlapping availability with you yet.
+                </div>
+            `);
+            return;
+        }
+        
+        let html = `
+            <div class="mb-3">
+                <strong>Your availability:</strong> ${data.my_slot_count} time slots marked as available
+            </div>
+            <div class="row">
+        `;
+        
+        data.matches.forEach(match => {
+            const rolesBadges = match.roles.map(role => {
+                if (role === 'tank') return '<span class="badge bg-primary">Tank</span>';
+                if (role === 'healer') return '<span class="badge bg-success">Healer</span>';
+                if (role === 'dps') return '<span class="badge bg-danger">DPS</span>';
+                return '';
+            }).join(' ');
+            
+            html += `
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <img src="/static/img/classes/${match.wow_class.toLowerCase()}_small.gif" 
+                                     alt="${match.wow_class}" 
+                                     class="class-icon-small">
+                                ${match.character_name}
+                            </h5>
+                            <p class="card-text">
+                                <strong>Class:</strong> ${match.wow_class}<br>
+                                <strong>Roles:</strong> ${rolesBadges || '<span class="text-muted">None</span>'}
+                            </p>
+                            <div class="mb-3">
+                                <div class="progress" style="height: 25px;">
+                                    <div class="progress-bar bg-success" 
+                                         role="progressbar" 
+                                         style="width: ${match.overlap_percent}%"
+                                         aria-valuenow="${match.overlap_percent}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        ${match.overlap_percent}% match
+                                    </div>
+                                </div>
+                                <small class="text-muted">
+                                    ${match.overlap_count} overlapping slots
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        $('#matchesContainer').html(html);
+    }
+});
+</script>
+{% endblock %}

@@ -171,3 +171,80 @@ def get_aggregate():
     return jsonify({
         'aggregates': [agg.to_dict() for agg in aggregates]
     }), 200
+
+
+@bp.route('/find-matches')
+@login_required
+def find_matches():
+    """Show users with overlapping availability"""
+    return render_template('availability/find_matches.html')
+
+
+@bp.route('/api/availability/find-matches')
+@login_required
+def api_find_matches():
+    """Find users with overlapping availability with current user"""
+    start_slot = request.args.get('start_slot', type=int)
+    end_slot = request.args.get('end_slot', type=int)
+    
+    if not start_slot or not end_slot:
+        return jsonify({'error': 'start_slot and end_slot are required'}), 400
+    
+    # Get current user's available slots (state=2)
+    my_slots = AvailabilitySlot.query.filter(
+        AvailabilitySlot.user_id == current_user.id,
+        AvailabilitySlot.state == 2,
+        AvailabilitySlot.slot_index >= start_slot,
+        AvailabilitySlot.slot_index <= end_slot
+    ).all()
+    
+    my_slot_indices = [s.slot_index for s in my_slots]
+    
+    if not my_slot_indices:
+        return jsonify({'matches': [], 'message': 'No availability set'}), 200
+    
+    # Find other users with availability in the same slots
+    from sqlalchemy import func
+    overlaps = db.session.query(
+        AvailabilitySlot.user_id,
+        func.count(AvailabilitySlot.slot_index).label('overlap_count')
+    ).filter(
+        AvailabilitySlot.slot_index.in_(my_slot_indices),
+        AvailabilitySlot.state == 2,
+        AvailabilitySlot.user_id != current_user.id
+    ).group_by(AvailabilitySlot.user_id).order_by(
+        func.count(AvailabilitySlot.slot_index).desc()
+    ).all()
+    
+    # Get user details and calculate percentages
+    matches = []
+    total_my_slots = len(my_slot_indices)
+    
+    for user_id, overlap_count in overlaps:
+        user = User.query.get(user_id)
+        if user:
+            # Get user's total available slots in range
+            user_total_slots = AvailabilitySlot.query.filter(
+                AvailabilitySlot.user_id == user_id,
+                AvailabilitySlot.state == 2,
+                AvailabilitySlot.slot_index >= start_slot,
+                AvailabilitySlot.slot_index <= end_slot
+            ).count()
+            
+            overlap_percent = (overlap_count / total_my_slots) * 100 if total_my_slots > 0 else 0
+            
+            matches.append({
+                'user_id': user.id,
+                'character_name': user.character_name,
+                'wow_class': user.wow_class,
+                'roles': user.get_roles(),
+                'overlap_count': overlap_count,
+                'overlap_percent': round(overlap_percent, 1),
+                'total_slots': user_total_slots
+            })
+    
+    return jsonify({
+        'matches': matches,
+        'my_slot_count': total_my_slots
+    }), 200
+
