@@ -393,7 +393,11 @@ sudo -u scheduler /opt/scheduler/venv/bin/pip install -r requirements.txt
 
 # Run database migrations (if applicable)
 echo "Running database migrations..."
-# If you add migrations, run them here
+# Check if migration script exists and run it
+if [ -f "migrate_groups.py" ]; then
+    echo "Found migration script, running..."
+    sudo -u scheduler /opt/scheduler/venv/bin/python3 migrate_groups.py
+fi
 
 # Rebuild aggregates (if needed)
 echo "Rebuilding aggregate counts..."
@@ -417,6 +421,78 @@ Make the script executable:
 
 ```bash
 sudo chmod +x /opt/scheduler/deploy.sh
+```
+
+### Database Migrations
+
+When new features add database tables (like the group system), run the migration script:
+
+```bash
+# Navigate to app directory
+cd /opt/scheduler/app
+
+# Pull latest code first
+sudo -u scheduler git pull origin master
+
+# Run migration script
+sudo -u scheduler /opt/scheduler/venv/bin/python3 migrate_groups.py
+```
+
+The migration script will:
+- Check which tables already exist
+- Create only the new tables that are needed
+- Verify tables were created successfully
+- Ask for confirmation in production before making changes
+
+**Manual Migration (PostgreSQL)**
+
+If you prefer to run SQL manually:
+
+```bash
+sudo -u postgres psql tbc_scheduler
+```
+
+Then run:
+
+```sql
+-- Create groups table
+CREATE TABLE IF NOT EXISTS groups (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    leader_id INTEGER NOT NULL REFERENCES users(id),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    max_size INTEGER NOT NULL DEFAULT 5
+);
+
+CREATE INDEX IF NOT EXISTS idx_groups_name ON groups(name);
+
+-- Create group_memberships table
+CREATE TABLE IF NOT EXISTS group_memberships (
+    id SERIAL PRIMARY KEY,
+    group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(group_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_group_membership_group_user ON group_memberships(group_id, user_id);
+
+-- Create group_invites table
+CREATE TABLE IF NOT EXISTS group_invites (
+    id SERIAL PRIMARY KEY,
+    group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    inviter_id INTEGER NOT NULL REFERENCES users(id),
+    invitee_id INTEGER NOT NULL REFERENCES users(id),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    responded_at TIMESTAMP,
+    UNIQUE(group_id, invitee_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_group_invite_invitee_status ON group_invites(invitee_id, status);
+
+-- Verify tables
+\dt
 ```
 
 ### Rolling Back
