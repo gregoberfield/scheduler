@@ -88,12 +88,13 @@ $(document).ready(function() {
         {% endfor %}
     };
     
-    // TBC launch: May 19, 2025 at 18:00 server time (6 PM)
-    const launchDate = new Date('2025-05-19T18:00:00');
-    const launchSlot = Math.floor(launchDate.getTime() / 1000 / 1800);
+    // Show 2 weeks starting from today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start at midnight
+    const startDate = today;
+    const startSlot = Math.floor(startDate.getTime() / 1000 / 1800);
     
-    // Show 2 weeks (14 days) starting from launch
-    const startSlot = launchSlot;
+    // Show 14 days
     const endSlot = startSlot + (14 * 48) - 1; // 14 days * 48 slots per day
     
     // Time slots (30-min intervals)
