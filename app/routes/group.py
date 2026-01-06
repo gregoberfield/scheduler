@@ -94,8 +94,10 @@ def schedule(group_id):
         return redirect(url_for('group.index'))
     
     members = group.get_members()
+    # Convert User objects to dictionaries for JSON serialization
+    members_data = [m.to_dict() for m in members]
     
-    return render_template('groups/schedule.html', group=group, members=members)
+    return render_template('groups/schedule.html', group=group, members=members, members_data=members_data)
 
 
 @bp.route('/invitations')

@@ -81,7 +81,7 @@
 <script>
 $(document).ready(function() {
     const groupId = {{ group.id }};
-    const members = {{ members | tojson }};
+    const members = {{ members_data | tojson }};
     const memberColors = {
         {% for member in members %}
         {{ member.id }}: '{{ ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][loop.index0 % 5] }}'{% if not loop.last %},{% endif %}
