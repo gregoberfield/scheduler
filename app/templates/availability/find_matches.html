@@ -2,23 +2,132 @@
 
 {% block title %}Find Available Players - WoW TBC{% endblock %}
 
+{% block extra_css %}
+<style>
+    .timeline-grid-wrapper {
+        overflow-x: auto;
+        max-width: 100%;
+    }
+    .timeline-table {
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+    .timeline-table th {
+        position: sticky;
+        top: 0;
+        background-color: white;
+        z-index: 10;
+    }
+    .character-header {
+        position: sticky;
+        left: 0;
+        z-index: 20;
+        min-width: 200px;
+        background-color: white;
+    }
+    .character-cell {
+        position: sticky;
+        left: 0;
+        z-index: 5;
+        background-color: white;
+        font-weight: 500;
+        min-width: 200px;
+        border-right: 2px solid #dee2e6;
+    }
+    .overlap-cell {
+        position: sticky;
+        left: 200px;
+        z-index: 5;
+        background-color: white;
+        font-weight: 600;
+        min-width: 80px;
+        border-right: 2px solid #dee2e6;
+    }
+    .overlap-header {
+        position: sticky;
+        left: 200px;
+        z-index: 20;
+        min-width: 80px;
+        background-color: white;
+        border-right: 2px solid #dee2e6;
+    }
+    .timeline-cell {
+        width: 10px;
+        height: 30px;
+        padding: 0;
+        border: 1px solid #e9ecef;
+    }
+    .state-available { background-color: #22c55e; }
+    .state-maybe { background-color: #fbbf24; }
+    .state-unavailable { background-color: #6c757d; }
+    .day-header {
+        text-align: center;
+        font-weight: bold;
+        background-color: #f8f9fa;
+        border: 2px solid #dee2e6;
+    }
+    .class-icon-small {
+        width: 20px;
+        height: 20px;
+        margin-right: 5px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container">
+<div class="container-fluid">
     <div class="row">
         <div class="col-12">
             <h2 class="mb-4"><i class="bi bi-search"></i> Find Available Guildmates</h2>
             
             <div class="alert alert-info">
                 <i class="bi bi-info-circle"></i> 
-                This shows other guild members who are available at the same times as you during the launch window.
+                This shows other guild members who are available at the same times as you. You ({{ current_user.character_name }}) are shown at the top for comparison.
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" required>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" required>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button id="loadMatchesBtn" class="btn btn-primary w-100">
+                                <i class="bi bi-search"></i> Find Matches
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div id="matchesContainer">
                 <div class="text-center">
-                    <div class="spinner-border" role="status">
-                        <span class="visually-hidden">Loading...</span>
+                    <p class="text-muted">Select a date range and click "Find Matches"</p>
+                </div>
+            </div>
+            
+            <!-- Legend -->
+            <div class="card mt-3" id="legendCard" style="display:none;">
+                <div class="card-body">
+                    <h6>Legend:</h6>
+                    <div class="row">
+                        <div class="col-auto">
+                            <span class="badge bg-success me-2">&nbsp;&nbsp;&nbsp;</span> Available
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge bg-warning me-2">&nbsp;&nbsp;&nbsp;</span> Maybe
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge bg-secondary me-2">&nbsp;&nbsp;&nbsp;</span> Unavailable
+                        </div>
                     </div>
-                    <p>Finding matches...</p>
+                    <hr>
+                    <p class="mb-0"><small><strong>Tip:</strong> Hover over time slots to see details</small></p>
                 </div>
             </div>
         </div>
@@ -29,44 +138,72 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // TBC launch: May 19, 2025 at 18:00 server time (6 PM)
-    const launchDate = new Date('2025-05-19T18:00:00');
-    const launchSlot = Math.floor(launchDate.getTime() / 1000 / 1800);
+    // Initialize with default dates (today + 7 days)
+    const today = new Date();
+    const weekLater = new Date(today);
+    weekLater.setDate(today.getDate() + 7);
     
-    // Show 2 weeks (14 days) starting from launch
-    const startSlot = launchSlot;
-    const endSlot = startSlot + (14 * 48) - 1;
+    $('#start_date').val(today.toISOString().split('T')[0]);
+    $('#end_date').val(weekLater.toISOString().split('T')[0]);
     
-    // Load matches
-    $.ajax({
-        url: `/api/availability/find-matches?start_slot=${startSlot}&end_slot=${endSlot}`,
-        method: 'GET',
-        success: function(response) {
-            renderMatches(response);
-        },
-        error: function(xhr) {
-            $('#matchesContainer').html(`
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle"></i> 
-                    Error loading matches: ${xhr.responseJSON?.error || 'Unknown error'}
+    // Load matches on button click
+    $('#loadMatchesBtn').on('click', function() {
+        loadMatches();
+    });
+    
+    function dateTimeToSlotIndex(date, hour, minute) {
+        const dt = new Date(date);
+        dt.setHours(hour, minute, 0, 0);
+        return Math.floor(dt.getTime() / 1000 / 1800);
+    }
+    
+    function loadMatches() {
+        const startDate = new Date($('#start_date').val());
+        const endDate = new Date($('#end_date').val());
+        
+        if (!startDate || !endDate) {
+            alert('Please select both start and end dates');
+            return;
+        }
+        
+        if (startDate >= endDate) {
+            alert('End date must be after start date');
+            return;
+        }
+        
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        
+        const startSlot = Math.floor(startDate.getTime() / 1000 / 1800);
+        const endSlot = Math.floor(endDate.getTime() / 1000 / 1800);
+        
+        $('#matchesContainer').html(`
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
                 </div>
-            `);
-        }
-    });
-    
-    // Get user's groups for invite dropdown
-    let userGroups = [];
-    $.ajax({
-        url: '/api/groups',
-        method: 'GET',
-        success: function(response) {
-            if (response.groups) {
-                userGroups = response.groups.filter(g => g.is_leader && !g.is_full);
+                <p>Finding matches...</p>
+            </div>
+        `);
+        
+        $.ajax({
+            url: `/api/availability/find-matches?start_slot=${startSlot}&end_slot=${endSlot}`,
+            method: 'GET',
+            success: function(response) {
+                renderTimeline(response, startDate, endDate);
+            },
+            error: function(xhr) {
+                $('#matchesContainer').html(`
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        Error loading matches: ${xhr.responseJSON?.error || 'Unknown error'}
+                    </div>
+                `);
             }
-        }
-    });
+        });
+    }
     
-    function renderMatches(data) {
+    function renderTimeline(data, startDate, endDate) {
         if (data.my_slot_count === 0) {
             $('#matchesContainer').html(`
                 <div class="alert alert-warning">
@@ -75,6 +212,7 @@ $(document).ready(function() {
                     <a href="/my-availability">My Availability</a> to mark when you're free!
                 </div>
             `);
+            $('#legendCard').hide();
             return;
         }
         
@@ -85,61 +223,112 @@ $(document).ready(function() {
                     No other guild members have overlapping availability with you yet.
                 </div>
             `);
+            $('#legendCard').hide();
             return;
         }
         
-        let html = `
-            <div class="mb-3">
-                <strong>Your availability:</strong> ${data.my_slot_count} time slots marked as available
-            </div>
-            <div class="row">
-        `;
+        // Show legend
+        $('#legendCard').show();
         
+        // Build timeline grid
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        let html = '<div class="timeline-grid-wrapper">';
+        html += '<table class="table table-bordered table-sm timeline-table">';
+        html += '<thead class="sticky-top bg-white">';
+        html += '<tr><th class="character-header">Character</th>';
+        html += '<th class="overlap-header">Overlap</th>';
+        
+        // Day headers
+        const days = [];
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            const dayStr = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+            days.push(new Date(d));
+            html += `<th colspan="48" class="day-header">${dayStr}</th>`;
+        }
+        html += '</tr>';
+        html += '</thead>';
+        html += '<tbody>';
+        
+        // Current user row first
+        const currentUser = data.current_user;
+        html += buildUserRow(currentUser, days, data.slots_data, true);
+        
+        // Other users with overlap
         data.matches.forEach(match => {
-            const rolesBadges = match.roles.map(role => {
-                if (role === 'tank') return '<span class="badge bg-primary">Tank</span>';
-                if (role === 'healer') return '<span class="badge bg-success">Healer</span>';
-                if (role === 'dps') return '<span class="badge bg-danger">DPS</span>';
-                return '';
-            }).join(' ');
-            
-            html += `
-                <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">
-                                <img src="/static/img/classes/${match.wow_class.toLowerCase()}_small.gif" 
-                                     alt="${match.wow_class}" 
-                                     class="class-icon-small">
-                                ${match.character_name}
-                            </h5>
-                            <p class="card-text">
-                                <strong>Class:</strong> ${match.wow_class}<br>
-                                <strong>Roles:</strong> ${rolesBadges || '<span class="text-muted">None</span>'}
-                            </p>
-                            <div class="mb-3">
-                                <div class="progress" style="height: 25px;">
-                                    <div class="progress-bar bg-success" 
-                                         role="progressbar" 
-                                         style="width: ${match.overlap_percent}%"
-                                         aria-valuenow="${match.overlap_percent}" 
-                                         aria-valuemin="0" 
-                                         aria-valuemax="100">
-                                        ${match.overlap_percent}% match
-                                    </div>
-                                </div>
-                                <small class="text-muted">
-                                    ${match.overlap_count} overlapping slots
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+            html += buildUserRow(match, days, data.slots_data, false);
         });
         
+        html += '</tbody>';
+        html += '</table>';
         html += '</div>';
+        
         $('#matchesContainer').html(html);
+    }
+    
+    function buildUserRow(user, days, slotsData, isCurrentUser) {
+        const userSlots = slotsData[user.user_id] || {};
+        
+        let html = '<tr>';
+        
+        // Character info cell
+        html += '<td class="character-cell">';
+        html += `<img src="/static/img/classes/${user.wow_class.toLowerCase()}_small.gif" class="class-icon-small" alt="${user.wow_class}">`;
+        html += `<span class="character-name">${user.character_name}</span>`;
+        if (isCurrentUser) {
+            html += ' <span class="badge bg-primary">You</span>';
+        }
+        if (user.roles && user.roles.length > 0) {
+            user.roles.forEach(role => {
+                const badgeClass = role === 'tank' ? 'primary' : role === 'healer' ? 'success' : 'danger';
+                html += ` <span class="badge bg-${badgeClass}">${role}</span>`;
+            });
+        }
+        html += '</td>';
+        
+        // Overlap percentage cell
+        html += '<td class="overlap-cell">';
+        if (isCurrentUser) {
+            html += '<span class="text-muted">—</span>';
+        } else {
+            const color = user.overlap_percent >= 75 ? 'success' : user.overlap_percent >= 50 ? 'warning' : 'secondary';
+            html += `<span class="badge bg-${color}">${user.overlap_percent}%</span>`;
+        }
+        html += '</td>';
+        
+        // Time slots - iterate through days, then through time slots for each day
+        days.forEach((day) => {
+            for (let hour = 0; hour < 24; hour++) {
+                for (let minute = 0; minute < 60; minute += 30) {
+                    const slotIndex = dateTimeToSlotIndex(day, hour, minute);
+                    const state = userSlots[slotIndex] || 0;
+                    const stateClass = state === 2 ? 'state-available' : state === 1 ? 'state-maybe' : 'state-unavailable';
+                    
+                    // Tooltip
+                    let titleAttr = '';
+                    if (state !== 0) {
+                        const tooltipDate = new Date(day);
+                        tooltipDate.setHours(hour, minute, 0, 0);
+                        const dateStr = tooltipDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+                        const timeStr = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+                        const stateStr = state === 2 ? 'Available' : 'Maybe';
+                        titleAttr = ` title="${user.character_name} - ${dateStr} ${timeStr} - ${stateStr}"`;
+                    }
+                    
+                    html += `<td class="timeline-cell ${stateClass}"${titleAttr}></td>`;
+                }
+            }
+        });
+        
+        html += '</tr>';
+        return html;
+    }
+    
+    function dateTimeToSlotIndex(date, hour, minute) {
+        const dt = new Date(date);
+        dt.setHours(hour, minute, 0, 0);
+        return Math.floor(dt.getTime() / 1000 / 1800);
     }
 });
 </script>

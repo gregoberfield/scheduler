@@ -219,17 +219,44 @@ def api_find_matches():
     # Get user details and calculate percentages
     matches = []
     total_my_slots = len(my_slot_indices)
+    slots_data = {}
+    
+    # Include current user in the data
+    current_user_data = {
+        'user_id': current_user.id,
+        'character_name': current_user.character_name,
+        'wow_class': current_user.wow_class,
+        'roles': current_user.get_roles(),
+        'overlap_count': total_my_slots,
+        'overlap_percent': 100.0,
+        'total_slots': total_my_slots
+    }
+    
+    # Get current user's slot data
+    my_slots_dict = {}
+    for slot in my_slots:
+        my_slots_dict[slot.slot_index] = slot.state
+    slots_data[current_user.id] = my_slots_dict
     
     for user_id, overlap_count in overlaps:
         user = User.query.get(user_id)
         if user:
-            # Get user's total available slots in range
-            user_total_slots = AvailabilitySlot.query.filter(
+            # Get user's all slots in range (not just available)
+            user_slots = AvailabilitySlot.query.filter(
                 AvailabilitySlot.user_id == user_id,
-                AvailabilitySlot.state == 2,
                 AvailabilitySlot.slot_index >= start_slot,
                 AvailabilitySlot.slot_index <= end_slot
-            ).count()
+            ).all()
+            
+            # Build slot dictionary for this user
+            user_slots_dict = {}
+            user_total_slots = 0
+            for slot in user_slots:
+                user_slots_dict[slot.slot_index] = slot.state
+                if slot.state == 2:
+                    user_total_slots += 1
+            
+            slots_data[user_id] = user_slots_dict
             
             overlap_percent = (overlap_count / total_my_slots) * 100 if total_my_slots > 0 else 0
             
@@ -245,6 +272,10 @@ def api_find_matches():
     
     return jsonify({
         'matches': matches,
-        'my_slot_count': total_my_slots
+        'my_slot_count': total_my_slots,
+        'current_user': current_user_data,
+        'slots_data': slots_data,
+        'start_slot': start_slot,
+        'end_slot': end_slot
     }), 200
 
